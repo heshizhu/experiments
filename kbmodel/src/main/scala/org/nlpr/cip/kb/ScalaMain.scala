@@ -10,3 +10,9 @@ import org.apache.log4j.Logger;
 class ScalaMain {
 
 }
+
+object ScalaMain{
+  def main(args: Array[String]) {
+      println("just for test")
+  }
+}
