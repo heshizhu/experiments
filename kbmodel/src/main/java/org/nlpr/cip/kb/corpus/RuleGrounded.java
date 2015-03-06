@@ -4,6 +4,14 @@ import com.google.common.collect.Sets;
 import org.apache.log4j.Logger;
 import org.nlpr.cip.kb.util.SparqlEndpoint;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -15,15 +23,53 @@ import java.util.Set;
  */
 public class RuleGrounded {
     private static Logger log = Logger.getLogger(RuleGrounded.class);
+    private static String basePath = "G:\\temp\\TransX\\";
+
+    private String corpus;
+    private String atomsPath;
+    private SparqlEndpoint endpoint;
+
+    public RuleGrounded(String corpus){
+        this.corpus = corpus;
+        this.atomsPath = String.format("%s%s/data/formulas/", basePath, corpus);
+        Path path = FileSystems.getDefault().getPath(atomsPath);
+        if(Files.notExists(path)) {
+            try {
+                Files.createDirectory(path);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        endpoint = SparqlEndpoint.getSparqlEndpoint("172.18.28.117", 5001);
+    }
+
+    public void grounding() throws IOException {
+        Path input = FileSystems.getDefault().getPath(basePath, corpus, "data/rules.txt");
+        Path output = FileSystems.getDefault().getPath(basePath, corpus, "data/formulas/formulas.txt");
+        BufferedReader reader = Files.newBufferedReader(input, Charset.forName("utf-8"));
+        BufferedWriter writer = Files.newBufferedWriter(output, Charset.forName("utf-8"));
+
+        int id = 0;
+        String line;
+        while(true){
+            line = reader.readLine();
+            if(line == null) break;
+            if(line.startsWith("#")) continue;
+            if(line.trim().length() == 0) continue;
+            String newline = groundingFormula(line, id++);
+            writer.write(newline);
+            writer.newLine();
+        }
+
+        writer.close();
+        reader.close();
+    }
 
 
-    public static void main(String[] args) {
-        SparqlEndpoint endpoint = SparqlEndpoint.getSparqlEndpoint("172.18.28.117", 5001);
 
-//        String formula = "x_1 children x_2 x_2 parents x_1";
-//        String formula = "x_1 spouse x_2 x_2 gender female x_1 gender male";
-        String formula = "x_1 spouse x_2 x_2 children x_3 x_1 children x_3";
-
+    public String groundingFormula(String formula, int id) throws IOException {
+        Path output = FileSystems.getDefault().getPath(atomsPath, String.format("%d.atoms", id));
+        BufferedWriter writer = Files.newBufferedWriter(output, Charset.forName("utf-8"));
 
         String[] terms = formula.split(" ");
         if(terms.length % 3 != 0){
@@ -64,10 +110,6 @@ public class RuleGrounded {
         int bodySupportFrq = endpoint.count(sparql.toString());
         double support = supportFrq * 1.0 / bodySupportFrq;
 
-        System.out.println("frquent: " + supportFrq);
-        System.out.println("(body)frquent: " + bodySupportFrq);
-        System.out.println("support: " + support);
-
 
         int variable_num = free_variables.size();
         sparql = new StringBuilder();
@@ -82,8 +124,34 @@ public class RuleGrounded {
         sparql.append("}");
 //        System.out.println(sparql.toString());
         List<String> results = endpoint.query(sparql.toString());
-        System.out.println("size: " + (results.size() - 1));
-        for(int i = 0; i < 10 && i < results.size(); i ++)
-            System.out.println(results.get(i));
+        for(int i = 1; i < results.size(); i ++){
+            String[] elements = results.get(i).split("\t");
+            for(int k = 0; k < elements.length; k++){
+                if(elements[k].startsWith("\"") && elements[k].endsWith("\""))
+                    elements[k] = elements[k].substring(1, elements[k].length() - 1);
+            }
+            String groundFormula = formula;
+            for(int k = 0; k < variable_num; k++)
+                groundFormula = groundFormula.replaceAll(("x_" + (k+1)), elements[k]);
+            writer.write(groundFormula);
+            writer.newLine();
+        }
+
+        writer.close();
+        return String.format("%s\t%d\t%d\t%f", formula, bodySupportFrq, supportFrq, support);
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        String corpus = "fb13";
+        RuleGrounded ruleGrounded = new RuleGrounded(corpus);
+        ruleGrounded.grounding();
+
+
+//        String formula = "x_1 children x_2 x_2 parents x_1";
+//        String formula = "x_1 spouse x_2 x_2 gender female x_1 gender male";
+//        String formula = "x_1 spouse x_2 x_2 children x_3 x_1 children x_3";
+
+
     }
 }
