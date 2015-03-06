@@ -2,7 +2,8 @@ package org.nlpr.cip.kb.corpus
 
 import java.io.PrintWriter
 
-import org.nlpr.ir.kbemb.util.Corpus
+
+import org.nlpr.cip.kb.util.Corpus
 
 import scala.collection.mutable.{ArrayBuffer, Map, Set}
 import scala.io.Source
