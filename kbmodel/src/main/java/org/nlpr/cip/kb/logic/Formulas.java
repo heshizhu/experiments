@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import org.apache.log4j.Logger;
 import org.nlpr.cip.kb.util.SparqlEndpoint;
 
+import java.text.Normalizer;
 import java.util.*;
 
 /**
@@ -31,12 +32,20 @@ public class Formulas {
         for(int i = 0; i < two.vars.size(); i ++)
             vars.add("temp_" + i);
         Set<String> var_match_results = search(vars, 0, two.vars.size(), one.vars);
-
-
-
-
-        for(String match_res : var_match_results)
-            System.out.println(match_res);
+        for(String matchRule : var_match_results){
+            Map<String, String> matcher = Maps.newHashMap();
+            String[] matchTemp = matchRule.split("\t");
+            for(int i = 0; i < matchTemp.length; i ++)
+                matcher.put(prefix + i, matchTemp[i]);
+            List<Triple> join_atoms = Lists.newArrayList();
+            for(Triple one_tri : one.atoms)
+                join_atoms.add(new Triple(one_tri));
+            for(Triple two_tri : two.atoms){
+                join_atoms.add(two_tri.replaceVar(matcher));
+            }
+            Formula new_form = new Formula().setAtoms(join_atoms).strip();
+            new_formulas.add(new_form);
+        }
 
         return new_formulas;
     }
@@ -65,12 +74,19 @@ public class Formulas {
         System.out.println(two);
 
         List<Formula> formulas = join(two, one);
+        for(Formula form : formulas)
+            System.out.println(form);
     }
 }
 
 class Formula{
     public List<String> vars = Lists.newArrayList();
     public List<Triple> atoms = Lists.newArrayList();
+
+    public Formula(){}
+    public Formula setAtoms(List<Triple> that){
+        this.atoms = that; return this;
+    }
 
     //?X_0 child ?X_1 ?X_1 child ?X_2
     //?X_0 grandson ?X_1
@@ -130,7 +146,7 @@ class Formula{
     }
 
     //对atoms中出现的变量名进行重新整理，按照其出现的先后顺序
-    public void strip(){
+    public Formula strip(){
         Map<String, String> var_id = Maps.newHashMap();
         for(Triple tri : atoms){
             if(tri.h.startsWith(Formulas.prefix) && !var_id.containsKey(tri.h))
@@ -151,5 +167,6 @@ class Formula{
             if(tri.t.startsWith(Formulas.prefix))
                 tri.t = var_id.get(tri.t);
         }
+        return this;
     }
 }
