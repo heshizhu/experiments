@@ -91,52 +91,9 @@ public class Formulas {
         endpoint = SparqlEndpoint.getSparqlEndpoint(host, port);
 
 //        buildInitFormula();
+        buildTwoWayFormula();
+        buildThreeWayFormula();
 
-        List<Formula> one_formulas = Lists.newArrayList();
-        String one_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\one_formulas.txt";
-        List<String> one_formuls_lines = Files.readLines(new File(one_formula_path), Charset.forName("utf-8"));
-        for(int id = 0; id < one_formuls_lines.size(); id += 2)
-            one_formulas.add(new Formula(one_formuls_lines.get(id).split("\t")));
-
-        System.out.println("#one : " + one_formulas.size());
-        //形成包含两个项的公式
-        Set<String> two_formlulas_str = Sets.newHashSet();
-        for(int outID = 0; outID < one_formulas.size(); outID ++){
-            Formula one = one_formulas.get(outID);
-            for(int inID = outID + 1; inID < one_formulas.size(); inID ++){
-                Formula two = one_formulas.get(inID);
-                for(Formula join_one : join(one, two))
-                    two_formlulas_str.add(Joiner.on("\t").join(join_one.toSimpleString()));
-            }
-            if(outID % 1000 == 0) System.out.println(new Date() + ". deal with : " + outID);
-        }
-        System.out.println("二元总共：" + two_formlulas_str.size());
-
-        int num = 0, two_num = 0, two_valid = 0;
-        String two_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_formulas.txt";
-        BufferedWriter two_writer = Files.newWriter(new File(two_formula_path), Charset.forName("utf-8"));
-        for(String form_str : two_formlulas_str){
-            Formula formula = new Formula(form_str.split("\t"));
-            int count = formula.count();
-            if(num ++ % 1000 == 0) System.out.println((num - 1) + ":" + new Date());
-            if(count > 0)
-                two_num++;
-            if(count > 10) {
-                two_valid++;
-                two_writer.write(Joiner.on("\t").join(formula.toSimpleString()));
-                two_writer.newLine();
-                two_writer.write(count);
-                two_writer.newLine();
-            }
-        }
-        two_writer.close();
-        System.out.println("总共公式：" + two_num);
-        System.out.println("有效公式：" + two_valid);
-
-
-        //形成三个项的公式
-//        List<Formula> three_formulas = Lists.newArrayList();
-//        String three_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_formulas.txt";
 
 //        Formula one = new Formula("?X_0 /people/person/spouse_s./people/marriage/spouse ?X_1 ?X_0 /people/person/gender ?X_2".split(" "));
 //        Formula two = new Formula("?X_0 /people/person/gender ?X_1".split(" "));
@@ -154,6 +111,105 @@ public class Formulas {
 //            System.out.println(join_str_formula + ":" + join_str_formula.count());
 //            break;
 //        }
+    }
+
+
+
+    public static void buildThreeWayFormula() throws IOException{
+        List<Formula> one_formulas = Lists.newArrayList();
+        String one_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\one_formulas.txt";
+        List<String> one_formuls_lines = Files.readLines(new File(one_formula_path), Charset.forName("utf-8"));
+        for(int id = 0; id < one_formuls_lines.size(); id += 2)
+            one_formulas.add(new Formula(one_formuls_lines.get(id).split("\t")));
+
+        List<Formula> two_formulas = Lists.newArrayList();
+        String two_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_formulas.txt";
+        List<String> two_formuls_lines = Files.readLines(new File(two_formula_path), Charset.forName("utf-8"));
+        for(int id = 0; id < two_formuls_lines.size(); id += 2)
+            two_formulas.add(new Formula(two_formuls_lines.get(id).split("\t")));
+
+        System.out.println("#one : " + one_formulas.size());
+        System.out.println("#two : " + two_formulas.size());
+
+        int three_src_num = 0, three_num = 0, three_valid = 0;
+        String three_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\three_formulas.txt";
+        BufferedWriter three_writer = Files.newWriter(new File(three_formula_path), Charset.forName("utf-8"));
+        for(int outID = 0; outID < two_formulas.size(); outID ++){
+            Set<String> three_formlulas_str = Sets.newHashSet();
+            Formula two = two_formulas.get(outID);
+            for(int inID = 0; inID < one_formulas.size(); inID ++){
+                Formula one = one_formulas.get(inID);
+                for(Formula join_one : join(two, one))
+                    three_formlulas_str.add(Joiner.on("\t").join(join_one.toSimpleString()));
+            }
+
+            for(String form_str : three_formlulas_str){
+                Formula formula = new Formula(form_str.split("\t"));
+                int count = formula.count();
+                if(count > 0)
+                    three_num++;
+                if(count > 10) {
+                    three_valid++;
+                    three_writer.write(Joiner.on("\t").join(formula.toSimpleString()));
+                    three_writer.newLine();
+                    three_writer.write(count);
+                    three_writer.newLine();
+                }
+            }
+            three_src_num += three_formlulas_str.size();
+            if(outID % 100 == 0) System.out.println(new Date() + ". deal with : " + outID);
+        }
+
+        three_writer.close();
+        System.out.println("三元总共：" + three_src_num);
+        System.out.println("成立总共：" + three_num);
+        System.out.println("有效总共：" + three_valid);
+
+    }
+
+    public static void buildTwoWayFormula() throws IOException{
+        List<Formula> one_formulas = Lists.newArrayList();
+        String one_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\one_formulas.txt";
+        List<String> one_formuls_lines = Files.readLines(new File(one_formula_path), Charset.forName("utf-8"));
+        for(int id = 0; id < one_formuls_lines.size(); id += 2)
+            one_formulas.add(new Formula(one_formuls_lines.get(id).split("\t")));
+
+        System.out.println("#one : " + one_formulas.size());
+        //形成包含两个项的公式
+
+        int two_src_num = 0, two_num = 0, two_valid = 0;
+        String two_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_formulas.txt";
+        BufferedWriter two_writer = Files.newWriter(new File(two_formula_path), Charset.forName("utf-8"));
+        for(int outID = 0; outID < one_formulas.size(); outID ++){
+            Set<String> two_formlulas_str = Sets.newHashSet();
+            Formula one = one_formulas.get(outID);
+            for(int inID = outID + 1; inID < one_formulas.size(); inID ++){
+                Formula two = one_formulas.get(inID);
+                for(Formula join_one : join(one, two))
+                    two_formlulas_str.add(Joiner.on("\t").join(join_one.toSimpleString()));
+            }
+
+            for(String form_str : two_formlulas_str){
+                Formula formula = new Formula(form_str.split("\t"));
+                int count = formula.count();
+                if(count > 0)
+                    two_num++;
+                if(count > 10) {
+                    two_valid++;
+                    two_writer.write(Joiner.on("\t").join(formula.toSimpleString()));
+                    two_writer.newLine();
+                    two_writer.write(count);
+                    two_writer.newLine();
+                }
+            }
+
+            two_src_num += two_formlulas_str.size();
+            if(outID % 100 == 0) System.out.println(new Date() + ". deal with : " + outID);
+        }
+        two_writer.close();
+        System.out.println("二元总共：" + two_src_num);
+        System.out.println("成立总共：" + two_num);
+        System.out.println("有效总共：" + two_valid);
     }
 
     public static void buildInitFormula() throws IOException {
