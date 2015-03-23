@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import org.apache.log4j.Logger;
+import org.nlpr.cip.kb.util.CollectionUtils;
 import org.nlpr.cip.kb.util.SparqlEndpoint;
 
 import java.io.BufferedWriter;
@@ -98,6 +99,134 @@ public class Formulas {
         buildThreeWayFormula();
         System.out.println("all over.");
 
+        collectLogicalRules();//收集高频逻辑规则
+    }
+
+    public static void collectLogicalRules() throws IOException{
+        List<Formula> one_formulas = Lists.newArrayList();
+        Map<String, Integer> one_formula_frequent = Maps.newHashMap();
+        String one_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\one_formulas.txt";
+        List<String> one_formuls_lines = Files.readLines(new File(one_formula_path), Charset.forName("utf-8"));
+        for(int id = 0; id < one_formuls_lines.size(); id += 2){
+            Formula one = new Formula(one_formuls_lines.get(id).split("\t"));
+            String one_str = Joiner.on("\t").join(one.toSimpleString());
+            int frq = Integer.parseInt(one_formuls_lines.get(id + 1));
+            one_formulas.add(one);
+            one_formula_frequent.put(one_str, frq);
+        }
+
+        List<Formula> two_formulas = Lists.newArrayList();
+        Map<String, Integer> two_formula_frequent = Maps.newHashMap();
+        String two_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_formulas.txt";
+        List<String> two_formuls_lines = Files.readLines(new File(two_formula_path), Charset.forName("utf-8"));
+        for(int id = 0; id < two_formuls_lines.size(); id += 2) {
+            Formula two = new Formula(two_formuls_lines.get(id).split("\t"));
+            String two_str = Joiner.on("\t").join(two.toSimpleString());
+            int frq = Integer.parseInt(two_formuls_lines.get(id + 1));
+            two_formulas.add(two);
+            two_formula_frequent.put(two_str, frq);
+        }
+
+        List<Formula> three_formulas = Lists.newArrayList();
+        Map<String, Integer> three_formula_frequent = Maps.newHashMap();
+        String three_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\three_formulas.txt";
+        List<String> three_formuls_lines = Files.readLines(new File(three_formula_path), Charset.forName("utf-8"));
+        for(int id = 0; id < three_formuls_lines.size(); id += 2) {
+            Formula three = new Formula(three_formuls_lines.get(id).split("\t"));
+            String three_str = Joiner.on("\t").join(three.toSimpleString());
+            int frq = Integer.parseInt(three_formuls_lines.get(id + 1));
+            three_formulas.add(three);
+            three_formula_frequent.put(three_str, frq);
+        }
+
+
+        //发现二阶推理规则
+        Map<String, Double> body_head_conf = Maps.newHashMap();
+        for(int outID = 0; outID < one_formulas.size(); outID ++){
+            Formula one = one_formulas.get(outID);
+            String one_str = Joiner.on("\t").join(one.toSimpleString());
+            int one_frq = one_formula_frequent.get(one);
+            for(int inID = outID + 1; inID < one_formulas.size(); inID ++){
+                Formula two = one_formulas.get(inID);
+                String two_str = Joiner.on("\t").join(two.toSimpleString());
+                int two_frq = one_formula_frequent.get(two);
+                for(Formula join_one : join(one, two)){
+                    String join_str = Joiner.on("\t").join(join_one.toSimpleString());
+                    if(!two_formula_frequent.containsKey(join_str)) continue;
+                    int join_frq = two_formula_frequent.get(join_str);
+                    double one_infer_two = 1.0 * join_frq / one_frq;
+                    double two_infer_one = 1.0 * join_frq / two_frq;
+                    // one => two 的置信度为 one_infer_two
+                    // two => one 的置信度为 two_infer_one
+                    body_head_conf.put(String.format("%s\n%s", one_str, two_str), one_infer_two);
+                    body_head_conf.put(String.format("%s\n%s", two_str, one_str), two_infer_one);
+                }
+            }
+        }
+        //对value进行排序
+        String two_rule_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_rules.txt";
+        BufferedWriter two_rule_writer = Files.newWriter(new File(two_rule_path), Charset.forName("utf-8"));
+        List<Map.Entry<String, Double>> two_order_entries = (List<Map.Entry<String, Double>>)CollectionUtils.sortMapByValueDESC(body_head_conf);
+        for(Map.Entry<String, Double> entry : two_order_entries){
+            String[] keys = entry.getKey().split("\n");
+            String one_str = keys[0];
+            String two_str = keys[1];
+            int one_frq = one_formula_frequent.get(one_str);
+            int two_frq = one_formula_frequent.get(two_str);
+            double conf = entry.getValue();
+            two_rule_writer.write(one_str);
+            two_rule_writer.newLine();
+            two_rule_writer.write(two_str);
+            two_rule_writer.newLine();
+            two_rule_writer.write(String.format("%d\n%d\n%f", one_frq, two_frq, conf));
+            two_rule_writer.newLine();
+        }
+        two_rule_writer.close();
+
+
+        //发现三阶推理规则
+        body_head_conf = Maps.newHashMap();
+        for(int outID = 0; outID < two_formulas.size(); outID ++){
+            Formula two = two_formulas.get(outID);
+            String two_str = Joiner.on("\t").join(two.toSimpleString());
+            int two_frq = two_formula_frequent.get(two);
+            for(int inID = outID + 1; inID < one_formulas.size(); inID ++){
+                Formula one = one_formulas.get(inID);
+                String one_str = Joiner.on("\t").join(one.toSimpleString());
+                int one_frq = one_formula_frequent.get(two);
+                for(Formula join : join(two, one)){
+                    String join_str = Joiner.on("\t").join(join.toSimpleString());
+                    if(!three_formula_frequent.containsKey(join_str)) continue;
+                    int join_frq = two_formula_frequent.get(join_str);
+                    double two_infer_one = 1.0 * join_frq / two_frq;
+                    // two => one 的置信度为 two_infer_one
+                    body_head_conf.put(String.format("%s\n%s", two_str, one_str), two_infer_one);
+                }
+            }
+        }
+        //对value进行排序
+        String three_rule_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\three_rules.txt";
+        BufferedWriter three_rule_writer = Files.newWriter(new File(three_rule_path), Charset.forName("utf-8"));
+        List<Map.Entry<String, Double>> three_order_entries = (List<Map.Entry<String, Double>>)CollectionUtils.sortMapByValueDESC(body_head_conf);
+        for(Map.Entry<String, Double> entry : three_order_entries){
+            String[] keys = entry.getKey().split("\n");
+            String two_str = keys[0];
+            String one_str = keys[1];
+            int two_frq = two_formula_frequent.get(two_str);
+            int one_frq = one_formula_frequent.get(one_str);
+            double conf = entry.getValue();
+            three_rule_writer.write(two_str);
+            three_rule_writer.newLine();
+            three_rule_writer.write(one_str);
+            three_rule_writer.newLine();
+            three_rule_writer.write(String.format("%d\n%d\n%f", two_frq, one_frq, conf));
+            three_rule_writer.newLine();
+        }
+        three_rule_writer.close();
+    }
+
+
+    public static void test(){
 //        Formula one = new Formula("?X_0 /people/person/spouse_s./people/marriage/spouse ?X_1 ?X_0 /people/person/gender ?X_2".split(" "));
 //        Formula two = new Formula("?X_0 /people/person/gender ?X_1".split(" "));
 //
@@ -115,8 +244,6 @@ public class Formulas {
 //            break;
 //        }
     }
-
-
 
     public static void buildThreeWayFormula() throws IOException{
         List<Formula> one_formulas = Lists.newArrayList();
@@ -163,8 +290,8 @@ public class Formulas {
                     int join_frq = join_one.count();
                     if(join_frq > 0) three_num++;
                     if(join_frq <= 100) continue;
-                    double one_infer_join = 1.0 * oneFrq / join_frq;
-                    double two_infer_join = 1.0 * twoFrq / join_frq;
+                    double one_infer_join = 1.0 * join_frq / oneFrq;
+                    double two_infer_join = 1.0 * join_frq / twoFrq;
                     //有效候选规则
                     if(one_infer_join > 0.6 || two_infer_join > 0.6){
                         three_valid++;
@@ -218,8 +345,8 @@ public class Formulas {
                     int join_frq = join_one.count();
                     if(join_frq > 0) two_num ++;
                     if(join_frq <= 100) continue;
-                    double one_infer_join = 1.0 * oneFrq / join_frq;
-                    double two_infer_join = 1.0 * twoFrq / join_frq;
+                    double one_infer_join = 1.0 * join_frq / oneFrq;
+                    double two_infer_join = 1.0 * join_frq / twoFrq;
                     //有效候选规则
                     if(one_infer_join > 0.6 || two_infer_join > 0.6){
                         two_valid++;
