@@ -95,7 +95,7 @@ public class RuleGrounded {
         }
         sparql.append("}");
 //        System.out.println(sparql.toString());
-        int supportFrq = endpoint.count(sparql.toString());
+        long supportFrq = endpoint.count(sparql.toString());
 
 
         //互动区其支持度
@@ -107,7 +107,7 @@ public class RuleGrounded {
         }
         sparql.append("}");
 //        System.out.println(sparql.toString());
-        int bodySupportFrq = endpoint.count(sparql.toString());
+        long bodySupportFrq = endpoint.count(sparql.toString());
         double support = supportFrq * 1.0 / bodySupportFrq;
 
 

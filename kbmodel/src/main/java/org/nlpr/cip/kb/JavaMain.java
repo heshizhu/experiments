@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 
 import java.util.List;
 
+
 /**
  * User: hesz
  * Date: 2015-3-6
@@ -17,7 +18,5 @@ public class JavaMain {
         List<String> lines = Lists.newArrayList();
         //对文件中按照行排序
         String inputPath = "";
-        
-
     }
 }

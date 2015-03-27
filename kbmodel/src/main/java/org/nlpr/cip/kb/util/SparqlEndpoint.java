@@ -60,11 +60,16 @@ public class SparqlEndpoint {
         return false;
     }
 
-    public int count(String query) {
+    public long count(String query) {
         String queryResult = makeQuery(query);
         String[] terms = queryResult.split("\n");
         if (terms.length == 2) {
-            return Integer.parseInt(terms[1]);
+            try {
+                return Long.parseLong(terms[1]);
+            }
+            catch(NumberFormatException ex){
+                return Long.MAX_VALUE;
+            }
         }
         return -1;
     }

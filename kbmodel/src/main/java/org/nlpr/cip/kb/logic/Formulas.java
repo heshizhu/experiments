@@ -28,6 +28,9 @@ public class Formulas {
 
     //两个公式可能组合成的所有公式
     public static List<Formula> join(Formula one, Formula two){
+        one = new Formula(one.toSimpleString());
+        two = new Formula(two.toSimpleString());
+
         if(one.vars.size() < two.vars.size()){
             Formula temp = one;
             one = two; two = temp;
@@ -87,6 +90,7 @@ public class Formulas {
     }
 
     public static void main(String[] args) throws IOException{
+
         String host = "172.18.28.117";//主机地址:172.18.28.117
         int port = 5002;//端口号:3039
         endpoint = SparqlEndpoint.getSparqlEndpoint(host, port);
@@ -95,67 +99,75 @@ public class Formulas {
 //        buildInitFormula();
 //        System.out.println("begin two way.");
 //        buildTwoWayFormula();
-        System.out.println("begin three way.");
+//        System.out.println("begin three way.");
         buildThreeWayFormula();
         System.out.println("all over.");
 
         collectLogicalRules();//收集高频逻辑规则
+
+
+//        test();
     }
 
     public static void collectLogicalRules() throws IOException{
         List<Formula> one_formulas = Lists.newArrayList();
-        Map<String, Integer> one_formula_frequent = Maps.newHashMap();
+        Map<String, Long> one_formula_frequent = Maps.newHashMap();
         String one_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\one_formulas.txt";
         List<String> one_formuls_lines = Files.readLines(new File(one_formula_path), Charset.forName("utf-8"));
         for(int id = 0; id < one_formuls_lines.size(); id += 2){
-            Formula one = new Formula(one_formuls_lines.get(id).split("\t"));
-            String one_str = Joiner.on("\t").join(one.toSimpleString());
-            int frq = Integer.parseInt(one_formuls_lines.get(id + 1));
+            String one_str = one_formuls_lines.get(id);
+            Formula one = new Formula(one_str.split("\t"));
+            long frq = Long.parseLong(one_formuls_lines.get(id + 1));
             one_formulas.add(one);
             one_formula_frequent.put(one_str, frq);
         }
 
         List<Formula> two_formulas = Lists.newArrayList();
-        Map<String, Integer> two_formula_frequent = Maps.newHashMap();
+        Map<String, Long> two_formula_frequent = Maps.newHashMap();
         String two_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_formulas.txt";
         List<String> two_formuls_lines = Files.readLines(new File(two_formula_path), Charset.forName("utf-8"));
         for(int id = 0; id < two_formuls_lines.size(); id += 2) {
-            Formula two = new Formula(two_formuls_lines.get(id).split("\t"));
-            String two_str = Joiner.on("\t").join(two.toSimpleString());
-            int frq = Integer.parseInt(two_formuls_lines.get(id + 1));
+            String two_str = two_formuls_lines.get(id);
+            Formula two = new Formula(two_str.split("\t"));
+            long frq = Long.parseLong(two_formuls_lines.get(id + 1));
             two_formulas.add(two);
             two_formula_frequent.put(two_str, frq);
         }
 
         List<Formula> three_formulas = Lists.newArrayList();
-        Map<String, Integer> three_formula_frequent = Maps.newHashMap();
+        Map<String, Long> three_formula_frequent = Maps.newHashMap();
         String three_formula_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\three_formulas.txt";
         List<String> three_formuls_lines = Files.readLines(new File(three_formula_path), Charset.forName("utf-8"));
         for(int id = 0; id < three_formuls_lines.size(); id += 2) {
-            Formula three = new Formula(three_formuls_lines.get(id).split("\t"));
-            String three_str = Joiner.on("\t").join(three.toSimpleString());
-            int frq = Integer.parseInt(three_formuls_lines.get(id + 1));
+            String three_str = three_formuls_lines.get(id);
+            Formula three = new Formula(three_str.split("\t"));
+            long frq = Long.parseLong(three_formuls_lines.get(id + 1));
             three_formulas.add(three);
             three_formula_frequent.put(three_str, frq);
         }
 
-
         //发现二阶推理规则
         Map<String, Double> body_head_conf = Maps.newHashMap();
+        Map<String, Double> two_formula_conf = Maps.newHashMap();
         for(int outID = 0; outID < one_formulas.size(); outID ++){
             Formula one = one_formulas.get(outID);
             String one_str = Joiner.on("\t").join(one.toSimpleString());
-            int one_frq = one_formula_frequent.get(one);
+            long one_frq = one_formula_frequent.get(one_str);
             for(int inID = outID + 1; inID < one_formulas.size(); inID ++){
                 Formula two = one_formulas.get(inID);
                 String two_str = Joiner.on("\t").join(two.toSimpleString());
-                int two_frq = one_formula_frequent.get(two);
+                long two_frq = one_formula_frequent.get(two_str);
                 for(Formula join_one : join(one, two)){
                     String join_str = Joiner.on("\t").join(join_one.toSimpleString());
                     if(!two_formula_frequent.containsKey(join_str)) continue;
-                    int join_frq = two_formula_frequent.get(join_str);
+                    long join_frq = two_formula_frequent.get(join_str);
                     double one_infer_two = 1.0 * join_frq / one_frq;
                     double two_infer_one = 1.0 * join_frq / two_frq;
+
+                    double max_conf = one_infer_two;
+                    if(two_infer_one > one_infer_two) max_conf = two_infer_one;
+                    two_formula_conf.put(join_str, max_conf);
+
                     // one => two 的置信度为 one_infer_two
                     // two => one 的置信度为 two_infer_one
                     body_head_conf.put(String.format("%s\n%s", one_str, two_str), one_infer_two);
@@ -163,6 +175,17 @@ public class Formulas {
                 }
             }
         }
+//        String two_formula_filter_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_formulas_1000.txt";
+//        BufferedWriter two_filter_writer = Files.newWriter(new File(two_formula_filter_path), Charset.forName("utf-8"));
+//        List<Map.Entry<String, Double>> two_filter_entries = (List<Map.Entry<String, Double>>)CollectionUtils.sortMapByValueDESC(two_formula_conf);
+//        for(int i = 0; i < two_filter_entries.size() && i < 1000; i ++){
+//            Map.Entry<String, Double> entry = two_filter_entries.get(i);
+//            String formula = entry.getKey();
+//            int frq = two_formula_frequent.get(formula);
+//            two_filter_writer.write(String.format("%s\n%d\n", formula, frq));
+//        }
+//        two_filter_writer.close();
+
         //对value进行排序
         String two_rule_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\two_rules.txt";
         BufferedWriter two_rule_writer = Files.newWriter(new File(two_rule_path), Charset.forName("utf-8"));
@@ -171,8 +194,8 @@ public class Formulas {
             String[] keys = entry.getKey().split("\n");
             String one_str = keys[0];
             String two_str = keys[1];
-            int one_frq = one_formula_frequent.get(one_str);
-            int two_frq = one_formula_frequent.get(two_str);
+            long one_frq = one_formula_frequent.get(one_str);
+            long two_frq = one_formula_frequent.get(two_str);
             double conf = entry.getValue();
             two_rule_writer.write(one_str);
             two_rule_writer.newLine();
@@ -189,15 +212,15 @@ public class Formulas {
         for(int outID = 0; outID < two_formulas.size(); outID ++){
             Formula two = two_formulas.get(outID);
             String two_str = Joiner.on("\t").join(two.toSimpleString());
-            int two_frq = two_formula_frequent.get(two);
+            long two_frq = two_formula_frequent.get(two);
             for(int inID = outID + 1; inID < one_formulas.size(); inID ++){
                 Formula one = one_formulas.get(inID);
                 String one_str = Joiner.on("\t").join(one.toSimpleString());
-                int one_frq = one_formula_frequent.get(two);
+                long one_frq = one_formula_frequent.get(two);
                 for(Formula join : join(two, one)){
                     String join_str = Joiner.on("\t").join(join.toSimpleString());
                     if(!three_formula_frequent.containsKey(join_str)) continue;
-                    int join_frq = two_formula_frequent.get(join_str);
+                    long join_frq = two_formula_frequent.get(join_str);
                     double two_infer_one = 1.0 * join_frq / two_frq;
                     // two => one 的置信度为 two_infer_one
                     body_head_conf.put(String.format("%s\n%s", two_str, one_str), two_infer_one);
@@ -205,15 +228,15 @@ public class Formulas {
             }
         }
         //对value进行排序
-        String three_rule_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\three_rules.txt";
+        String three_rule_path = "G:\\temp\\TransX\\fb15k\\data\\formulas\\init_three_rules.txt";
         BufferedWriter three_rule_writer = Files.newWriter(new File(three_rule_path), Charset.forName("utf-8"));
         List<Map.Entry<String, Double>> three_order_entries = (List<Map.Entry<String, Double>>)CollectionUtils.sortMapByValueDESC(body_head_conf);
         for(Map.Entry<String, Double> entry : three_order_entries){
             String[] keys = entry.getKey().split("\n");
             String two_str = keys[0];
             String one_str = keys[1];
-            int two_frq = two_formula_frequent.get(two_str);
-            int one_frq = one_formula_frequent.get(one_str);
+            long two_frq = two_formula_frequent.get(two_str);
+            long one_frq = one_formula_frequent.get(one_str);
             double conf = entry.getValue();
             three_rule_writer.write(two_str);
             three_rule_writer.newLine();
@@ -227,6 +250,11 @@ public class Formulas {
 
 
     public static void test(){
+        String line = "?X_0\t/organization/organization_member/member_of./organization/organization_membership/organization\t/m/02vk52z";
+        Formula one = new Formula(line.split("\t"));
+        String one_str = Joiner.on("\t").join(one.toSimpleString());
+        System.out.println(one_str);
+        System.out.println(Joiner.on("\t").join(one.toSimpleString()));
 //        Formula one = new Formula("?X_0 /people/person/spouse_s./people/marriage/spouse ?X_1 ?X_0 /people/person/gender ?X_2".split(" "));
 //        Formula two = new Formula("?X_0 /people/person/gender ?X_1".split(" "));
 //
@@ -287,7 +315,7 @@ public class Formulas {
                     String join_str = Joiner.on("\t").join(join_one.toSimpleString());
                     if(three_formlulas_str.contains(join_str)) continue;
                     three_formlulas_str.add(join_str);
-                    int join_frq = join_one.count();
+                    long join_frq = join_one.count();
                     if(join_frq > 0) three_num++;
                     if(join_frq <= 100) continue;
                     double one_infer_join = 1.0 * join_frq / oneFrq;
@@ -306,10 +334,10 @@ public class Formulas {
         }
 
         three_writer.close();
+
         System.out.println("三元总共：" + three_src_num);
         System.out.println("成立总共：" + three_num);
         System.out.println("有效总共：" + three_valid);
-
     }
 
     public static void buildTwoWayFormula() throws IOException{
@@ -332,17 +360,17 @@ public class Formulas {
         for(int outID = 0; outID < one_formulas.size(); outID ++){
             Set<String> two_formlulas_str = Sets.newHashSet();
             Formula one = one_formulas.get(outID);
-            int oneFrq = one_formula_frequent.get(one);
+            long oneFrq = one_formula_frequent.get(one);
             for(int inID = outID + 1; inID < one_formulas.size(); inID ++){
                 Formula two = one_formulas.get(inID);
-                int twoFrq = one_formula_frequent.get(two);
+                long twoFrq = one_formula_frequent.get(two);
                 for(Formula join_one : join(one, two)){
                     two_src_num ++;
                     String join_one_str = Joiner.on("\t").join(join_one.toSimpleString());
                     if(two_formlulas_str.contains(join_one_str)) continue;
                     two_formlulas_str.add(join_one_str);
 
-                    int join_frq = join_one.count();
+                    long join_frq = join_one.count();
                     if(join_frq > 0) two_num ++;
                     if(join_frq <= 100) continue;
                     double one_infer_join = 1.0 * join_frq / oneFrq;
@@ -394,23 +422,31 @@ public class Formulas {
 //                terms[0] = term_0;
 //            }
 //        }
+
         //保证关系不为变量
         for(String line : Files.readLines(new File(trainPath), Charset.forName("utf-8"))){
             String[] terms = line.split("\t");
-            for(int id_1 = 0; id_1 < 2; id_1 ++) {
-                String term_0 = terms[0];
-                if(id_1 == 0)
-                    terms[0] = prefix + 0;
-                for (int id_3 = 0; id_3 < 2; id_3++) {
-                    String term_2 = terms[2];
-                    if(id_1 == 0 && id_3 == 0) continue;
-                    if(id_3 == 0)
-                        terms[2] = prefix + 2;
-                    formula_str_trains.add(Joiner.on("\t").join(terms));
-                    terms[2] = term_2;
-                }
-                terms[0] = term_0;
+            terms[0] = prefix + 0;
+            for (int id_3 = 0; id_3 < 2; id_3++) {
+                String term_2 = terms[2];
+                if(id_3 == 0)
+                    terms[2] = prefix + 2;
+                formula_str_trains.add(Joiner.on("\t").join(terms));
+                terms[2] = term_2;
             }
+//            for(int id_1 = 0; id_1 < 2; id_1 ++) {
+////                String term_0 = terms[0];
+//                if(id_1 == 0)
+//                    terms[0] = prefix + 0;
+//                for (int id_3 = 0; id_3 < 2; id_3++) {
+//                    String term_2 = terms[2];
+//                    if(id_3 == 0)
+//                        terms[2] = prefix + 2;
+//                    formula_str_trains.add(Joiner.on("\t").join(terms));
+//                    terms[2] = term_2;
+//                }
+////                terms[0] = term_0;
+//            }
         }
         System.out.println(formula_str_trains.size());
         System.out.println("过滤过前：" + formula_str_trains.size());
@@ -422,12 +458,12 @@ public class Formulas {
         }
         System.out.println("过滤过后：" + form_str_filter.size());
 
-        String one_formula_path ="G:\\temp\\TransX\\fb15k\\data\\formulas\\init_formulas.txt";
+        String one_formula_path ="G:\\temp\\TransX\\fb15k\\data\\formulas\\one_formulas.txt";
         BufferedWriter init_writer = Files.newWriter(new File(one_formula_path), Charset.forName("utf-8"));
         int num = 0, init_num = 0;
         for(String form_str : form_str_filter){
             Formula formula = new Formula(form_str.split("\t"));
-            int count = formula.count();
+            long count = formula.count();
             if(num ++ % 1000 == 0) System.out.println((num - 1) + ":" + new Date());
             if(count > 100) {
                 init_writer.write(Joiner.on("\t").join(formula.toSimpleString()));
@@ -529,7 +565,7 @@ class Formula{
 
 
     //其在知识库中出下的次数
-    public int count(){
+    public long count(){
         StringBuilder sparql = new StringBuilder();
         sparql.append("SELECT COUNT(*) WHERE \n{\n");
         for(Triple atom : atoms){
