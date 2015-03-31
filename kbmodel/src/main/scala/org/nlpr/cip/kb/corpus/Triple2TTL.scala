@@ -15,7 +15,7 @@ import scala.io.Source
 object Triple2TTL {
 
   def main(args: Array[String]) {
-    val basePath = "G:\\temp\\TransX\\fb13\\data\\"
+    val basePath = "G:\\temp\\TransX\\fb15k_380\\data\\"
 
     val name = "train"
     val inputPath = "%s%s.txt".format(basePath, name)
