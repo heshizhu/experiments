@@ -49,11 +49,11 @@ object TripleClassification {
   def main(args: Array[String]) {
 //    prepare()
 
-    corpus = "fb15k_new"
-    model = "TransH_L1"
+    corpus = "wn18"
+    model = "GEEL"
 
     for (size <- List(50)) {
-      for (negT <- List("bern", "unif")) {
+      for (negT <- List("bern")) {
         dimNum = size
         negType = negT
         eval(corpus, model, negT, size)

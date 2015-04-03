@@ -1,6 +1,5 @@
 package org.nlpr.cip.kb.logic;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -24,7 +23,7 @@ import java.util.Set;
 public class Formulas {
     private static Logger log = Logger.getLogger(Formulas.class);
     public static SparqlEndpoint endpoint;
-    public static String basePath = "G:\\temp\\TransX\\fb15k_380\\";
+    public static String basePath = "fb15k_380/";
 
 
     public static void main(String[] args) throws IOException {
@@ -33,7 +32,7 @@ public class Formulas {
         endpoint = SparqlEndpoint.getSparqlEndpoint(host, port);
 
         List<Relation> relations = Lists.newArrayList();
-        for(String rel : Files.readLines(new File(basePath + "data\\relations.txt"), Charset.forName("utf-8"))){
+        for(String rel : Files.readLines(new File(basePath + "data/relations.txt"), Charset.forName("utf-8"))){
             relations.add(new Relation(rel));
             relations.add(new Relation(rel, true));
         }
@@ -93,8 +92,8 @@ public class Formulas {
             System.out.println(ind_one + ":" + new Date().toString());
         }
         System.out.println("all two: " + formula_two_set.size());
-        int validCount = 0;
-        String two_formula_path ="G:\\temp\\TransX\\fb15k_380\\data\\formulas\\two_formulas.txt";
+        int validCount = 0, index = 0;
+        String two_formula_path = basePath + "data/formulas/two_formulas.txt";
         BufferedWriter two_writer = Files.newWriter(new File(two_formula_path), Charset.forName("utf-8"));
         for(String form_str : formula_two_set){
             Formula formula = new Formula(form_str);
@@ -103,10 +102,11 @@ public class Formulas {
                 two_writer.newLine();
                 validCount++;
             }
+            if(index ++ % 1000 == 0)
+                System.out.println(index + ":" + new Date().toString());
         }
         two_writer.close();
         System.out.println("valid two: " + validCount);
-
     }
 }
 
@@ -200,7 +200,22 @@ class Formula{
 //            System.out.println(sparql.toString());
             formulaCount = Formulas.endpoint.count(sparql.toString());
         }
+
         return formulaCount;
+    }
+    public int[] twoSum(int[] numbers, int target) {
+        int[] inds = new int[]{0,0};
+        for(int id1 = 0; id1 < numbers.length - 1; id1 ++){
+            if(numbers[id1] > target) continue;
+            for(int id2 = id1 + 1; id2 < numbers.length; id2++){
+                if(numbers[id2] > target) continue;
+                if(numbers[id1] + numbers[id2] == target){
+                    inds[0] = id1; inds[1] = id2;
+                    return inds;
+                }
+            }
+        }
+        return inds;
     }
 
     //支持度

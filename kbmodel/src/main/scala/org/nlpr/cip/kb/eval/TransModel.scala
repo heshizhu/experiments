@@ -54,6 +54,10 @@ object TransModel {
     TransModel.negType = negType
     TransModel.size = size
     TransModel.l1 = l1
+    if(model.startsWith("GEEL"))
+      return getGEEL()
+    if(model.startsWith("GEKL"))
+      return getGEKL()
     if(model.startsWith("BidirH"))
       return getBidirH()
     if(model.startsWith("JointH"))
@@ -213,6 +217,49 @@ object TransModel {
     else new BidirHL2(entity2vec, relation2vec, relation2hyper)
   }
 
+  def getGEKL(): TransModel = {
+    val ent2mean = Map[Int, Array[Double]]()
+    val ent2vari = Map[Int, Array[Double]]()
+    val rel2mean = Map[Int, Array[Double]]()
+    val rel2vari = Map[Int, Array[Double]]()
+    val entVecPath = "%s%s/%s/ent2gau.%d.%s".format(basePath, corpus, model, size, negType)
+    for ((line, id) <- Source.fromFile(entVecPath).getLines.zipWithIndex if line.trim.length > 0){
+      if(id % 2 == 0)
+        ent2mean(id / 2) = line.split("\t").map(_.toDouble)
+      else
+        ent2vari((id - 1) / 2) = line.split("\t").map(_.toDouble)
+    }
+    val relVecPath = "%s%s/%s/rel2gau.%d.%s".format(basePath, corpus, model, size, negType)
+    for ((line, id) <- Source.fromFile(relVecPath).getLines.zipWithIndex if line.trim.length > 0){
+      if(id % 2 == 0)
+        rel2mean(id / 2) = line.split("\t").map(_.toDouble)
+      else
+        rel2vari((id - 1) / 2) = line.split("\t").map(_.toDouble)
+    }
+    new GEKL(ent2mean, ent2vari, rel2mean, rel2vari)
+  }
+
+  def getGEEL(): TransModel = {
+    val ent2mean = Map[Int, Array[Double]]()
+    val ent2vari = Map[Int, Array[Double]]()
+    val rel2mean = Map[Int, Array[Double]]()
+    val rel2vari = Map[Int, Array[Double]]()
+    val entVecPath = "%s%s/%s/ent2gau.%d.%s".format(basePath, corpus, model, size, negType)
+    for ((line, id) <- Source.fromFile(entVecPath).getLines.zipWithIndex if line.trim.length > 0){
+      if(id % 2 == 0)
+        ent2mean(id / 2) = line.split("\t").map(_.toDouble)
+      else
+        ent2vari((id - 1) / 2) = line.split("\t").map(_.toDouble)
+    }
+    val relVecPath = "%s%s/%s/rel2gau.%d.%s".format(basePath, corpus, model, size, negType)
+    for ((line, id) <- Source.fromFile(relVecPath).getLines.zipWithIndex if line.trim.length > 0){
+      if(id % 2 == 0)
+        rel2mean(id / 2) = line.split("\t").map(_.toDouble)
+      else
+        rel2vari((id - 1) / 2) = line.split("\t").map(_.toDouble)
+    }
+    new GEEL(ent2mean, ent2vari, rel2mean, rel2vari)
+  }
 }
 
 abstract class TransModel {
@@ -224,6 +271,7 @@ abstract class TransModel {
   def vecSub(a: Array[Double], b: Array[Double]): Array[Double] = (a zip b).map(x => x._1 - x._2)
 
   def multiply(m: Array[Array[Double]], v: Array[Double]): Array[Double] = m.map(vecDot(_, v))
+
 
   def mapHyper(v: Array[Double], h: Array[Double]): Array[Double] = {
     val inner = vecDot(v, h)
@@ -469,3 +517,41 @@ class BidirHL2(val entity2vec:Map[Int, Array[Double]],
     l2_distance(vecAdd(h_vec, relation2vec(r)), t_vec)
   }
 }
+
+//GEKL
+class GEKL(val ent2mean:Map[Int, Array[Double]],
+           val ent2vari:Map[Int, Array[Double]],
+           val rel2mean:Map[Int, Array[Double]],
+           val rel2vari:Map[Int, Array[Double]])extends TransModel{
+  def distance(h: Int, r: Int, t: Int): Double = {
+    var score = 0.0
+    val n = ent2mean(h).length
+    for(i <- 0 until n ){
+     score += (ent2vari(h)(i) + ent2vari(t)(i)) / rel2vari(r)(i)
+     val tt = (ent2mean(h)(i) - ent2mean(t)(i) - rel2mean(r)(i))
+     score += tt * tt / rel2vari(r)(i)
+     score += math.log(rel2vari(r)(i))
+     score -= math.log(ent2vari(h)(i) + ent2vari(t)(i))
+    }
+    score / 2
+  }
+}
+
+//GEEL
+class GEEL(val ent2mean:Map[Int, Array[Double]],
+           val ent2vari:Map[Int, Array[Double]],
+           val rel2mean:Map[Int, Array[Double]],
+           val rel2vari:Map[Int, Array[Double]])extends TransModel{
+  def distance(h: Int, r: Int, t: Int): Double = {
+    var score = 0.0
+    val n = ent2mean(h).length
+    for(i <- 0 until n ){
+      val mean = ent2mean(h)(i) - rel2mean(r)(i) - ent2mean(t)(i)
+      val vari = ent2vari(h)(i) + rel2vari(r)(i) + ent2vari(t)(i)
+      score += math.log(vari)
+      score += mean * mean / vari
+    }
+    -0.5 *score
+  }
+}
+
