@@ -50,10 +50,10 @@ object TripleClassification {
 //    prepare()
 
     corpus = "wn18"
-    model = "GEEL"
+    model = "GEKL"
 
     for (size <- List(50)) {
-      for (negT <- List("bern")) {
+      for (negT <- List("unif")) {
         dimNum = size
         negType = negT
         eval(corpus, model, negT, size)

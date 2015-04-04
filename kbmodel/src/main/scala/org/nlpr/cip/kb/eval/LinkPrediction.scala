@@ -39,8 +39,8 @@ object LinkPrediction {
 
 
     corpus = "wn18"
-    model = "GEEL"
-    negType = "bern"
+    model = "GEKL"
+    negType = "unif"
     dim = 50
 
     println("corpus: " + corpus)
