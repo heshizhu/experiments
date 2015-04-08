@@ -19,7 +19,7 @@ object LinkPrediction {
 
   //实验参数
   var dim = 50
-  var corpus = "fb15k_filter"
+  var corpus = "fb15k"
   var model = "TransE"
   var negType = "bern"
 
@@ -30,17 +30,16 @@ object LinkPrediction {
 
 
   def main(args: Array[String]) {
-    //    corpus = args(0)
-    //    model = args(1)
-    //    negType = args(2)
-    //    ent_vec_dim = args(3).toInt
-    //    rel_vec_dim =  args(3).toInt
+//    corpus = args(0)
+//    model = args(1)
+//    negType = args(2)
+//    dim = args(3).toInt
     TransModel.normalize_flag = false
 
 
-    corpus = "wn18"
-    model = "GEKL"
-    negType = "unif"
+    corpus = "fb15k"
+    model = "GEEL"
+    negType = "bern"
     dim = 50
 
     println("corpus: " + corpus)
