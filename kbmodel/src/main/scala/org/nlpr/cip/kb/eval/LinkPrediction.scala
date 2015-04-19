@@ -1,6 +1,8 @@
 package org.nlpr.cip.kb.eval
 
 
+import java.nio.file.{Paths, Files}
+
 import org.nlpr.cip.kb.util.Corpus
 
 import scala.collection.immutable.ListMap
@@ -27,6 +29,7 @@ object LinkPrediction {
   val (id2entity, id2relation) = (Map[Int, String](), Map[Int, String]())
   val (relation2type) = (Map[Int, String]())
   val (highFrqRelations) = Set[Int]()
+  val (refRelations) = Set[Int]()
 
 
   def main(args: Array[String]) {
@@ -89,6 +92,14 @@ object LinkPrediction {
     lpEval_Tail_HLFrq(1) = new LPEval()
     lpEval_Tail_HLFrq(0) = new LPEval()
 
+    //按照是否自反关系进行评价
+    val lpEval_Head_Ref = Map[Int, LPEval]()
+    val lpEval_Tail_Ref = Map[Int, LPEval]()
+    lpEval_Head_Ref(1) = new LPEval()
+    lpEval_Head_Ref(0) = new LPEval()
+    lpEval_Tail_Ref(1) = new LPEval()
+    lpEval_Tail_Ref(0) = new LPEval()
+
     var count = 0
     for ((h, r, t) <- testCorpus.triples) {
       if (count % 100 == 0)
@@ -141,6 +152,10 @@ object LinkPrediction {
       lpEval_Head_HLFrq(r_hlfrq).add(index_raw_h, index_filt_h, hits_raw_h, hits_filt_h)
       lpEval_Tail_HLFrq(r_hlfrq).add(index_raw_t, index_filt_t, hits_raw_t, hits_filt_t)
 
+      val is_ref = if(refRelations.contains(r)) 1 else 0
+      lpEval_Head_Ref(is_ref).add(index_raw_h, index_filt_h, hits_raw_h, hits_filt_h)
+      lpEval_Tail_Ref(is_ref).add(index_raw_t, index_filt_t, hits_raw_t, hits_filt_t)
+
       //预测r
       val r_scores = Map[Int, Double]()
       for (neg_r <- corpusAll.allRelations)
@@ -184,6 +199,20 @@ object LinkPrediction {
     println()
     println()
 
+    println("-------- 自反关系 --------")
+    for (ref <- List(1, 0)) {
+      val name = if (ref == 1) "自反关系" else "非自反关系"
+      println("-------- " + name + " --------")
+      println("*****----- Head -----*****")
+      println(lpEval_Head_Ref(ref).toSummary())
+      println("*****----- Tail -----*****")
+      println(lpEval_Tail_Ref(ref).toSummary())
+      println()
+    }
+    println()
+    println()
+
+
     println("-------- 关系类型 --------")
     for (rel_type <- List("1_1", "1_m", "m_1", "m_n")) {
       println("-------- " + rel_type + " --------")
@@ -199,6 +228,7 @@ object LinkPrediction {
     println("-------- 关系 --------")
     for (rel <- relation2type.keys) {
       println("-------- " + rel + " --------")
+      println("-------- " + id2relation(rel) + " --------")
       println("*****----- Head -----*****")
       println(lpEval_Head_Relation(rel).toSummary())
       println("*****----- Tail -----*****")
@@ -233,6 +263,13 @@ object LinkPrediction {
     for ((line, index) <- Source.fromFile(basePath + corpus + "/data/relationFrequent.txt", encode).getLines.zipWithIndex if index < 200) {
       val terms = line.split("\t")
       highFrqRelations += terms(0).toInt
+    }
+    println("load reflex relation")
+    if(Files.exists(Paths.get(basePath + corpus + "/data/ref_relations.txt"))){
+      for (line <- Source.fromFile(basePath + corpus + "/data/ref_relations.txt", encode).getLines) {
+        val rel = line.split("\t")(0)
+        refRelations += rel.toInt
+      }
     }
   }
 }

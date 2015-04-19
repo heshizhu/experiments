@@ -19,10 +19,10 @@ object freebase {
   def main(args: Array[String]) {
 //    extractTypeInst()
 //    sampleTypeInst()
-      extractEntity()
+//      extractEntity()
 //    extractMediatorInst()
 //    extractMediatorTriple()
-//    extractTriple()
+    extractTriple()
   }
 
   def sampleTypeInst(){
@@ -139,6 +139,28 @@ object freebase {
       Source.fromFile("G:\\temp\\freebase\\mediator_instance.txt", "utf-8").getLines.toSet
     println("medictor num : " + mediator_entities.size)
     val patt = "<http://rdf.freebase.com/ns/(.*?)>".r
+    var count = 0
+    for(line <- Source.fromFile("G:\\temp\\freebase\\freebase-retain", "utf-8").getLines) {
+      val terms = line.split("\t")
+      if (terms.length > 3
+        && terms(0).startsWith("<http://rdf.freebase.com/ns/m.")
+        && terms(2).startsWith("<http://rdf.freebase.com/ns/m.")) {
+        val patt(sub) = terms(0)
+        val patt(rel) = terms(1)
+        val patt(obj) = terms(2)
+        if (mediator_entities.contains(sub)) {
+          val triple_line = "%s\t%s".format(rel, obj)
+          val triples: Set[String] = if (mediator_triples.contains(sub)) mediator_triples(sub) else Set[String]()
+          triples.add(triple_line)
+          mediator_triples.put(sub, triples)
+        }
+      }
+      count += 1
+      if((count % 10000000) == 0) println(count)
+    }
+    println("mediator triple number : " + mediator_triples.size)
+    count = 0
+    val writer = new PrintWriter("G:\\temp\\freebase\\freebase_triple.txt", "utf-8")
     for(line <- Source.fromFile("G:\\temp\\freebase\\freebase-retain", "utf-8").getLines) {
       val terms = line.split("\t")
       if(terms.length > 3
@@ -147,40 +169,23 @@ object freebase {
         val patt(sub) = terms(0)
         val patt(rel) = terms(1)
         val patt(obj) = terms(2)
-        if(mediator_entities.contains(sub)){
-          val triple_line = "%s\t%s".format(rel, obj)
-          val triples : Set[String] = if(mediator_triples.contains(sub)) mediator_triples(sub) else Set[String]()
-          triples.add(triple_line)
-          mediator_triples.put(sub, triples)
-        }
-      }
 
-      val writer = new PrintWriter("G:\\temp\\freebase\\freebase_triple.txt", "utf-8")
-      for(line <- Source.fromFile("G:\\temp\\freebase\\freebase-retain", "utf-8").getLines) {
-        val terms = line.split("\t")
-        if(terms.length > 3
-          && terms(0).startsWith("<http://rdf.freebase.com/ns/m.")
-          && terms(2).startsWith("<http://rdf.freebase.com/ns/m.")){
-          val patt(sub) = terms(0)
-          val patt(rel) = terms(1)
-          val patt(obj) = terms(2)
-
-          if(mediator_triples.contains(obj)){
-            for(med_tri <- mediator_triples(obj)){
-              val terms = med_tri.split("\t")
-              if(sub != terms(1)) {
-                val new_line = "%s\t%s&%s\t%s".format(sub, rel, terms(0), terms(1))
-                writer.println(new_line)
-              }
+        if(mediator_triples.contains(obj)){
+          for(med_tri <- mediator_triples(obj)){
+            val terms = med_tri.split("\t")
+            if(sub != terms(1)) {
+              val new_line = "%s\t%s&%s\t%s".format(sub, rel, terms(0), terms(1))
+              writer.println(new_line)
             }
           }
-          else{
-            writer.println("%s\t%s\t%s".format(sub, rel, obj))
-          }
         }
-
+        else{
+          writer.println("%s\t%s\t%s".format(sub, rel, obj))
+        }
       }
-      writer.close()
+      count += 1
+      if((count % 10000000) == 0) println(count)
     }
+    writer.close()
   }
 }

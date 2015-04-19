@@ -20,8 +20,42 @@ object FB15KRelation {
   val (entity2id, relation2id) = (Map[String, Int](), Map[String, Int]())
   val (id2entity, id2relation) = (Map[Int, String](), Map[Int, String]())
 
-
   def main(args: Array[String]) {
+    corpus = "wn11"
+
+    prepare()
+    //得到fb15k中具有自反性的关系
+    val corpusAll = new Corpus(entity2id, relation2id, id2entity, id2relation)
+    corpusAll.add("%s%s/data/%s.txt".format(basePath, corpus, "train"))
+    corpusAll.add("%s%s/data/%s.txt".format(basePath, corpus, "valid"))
+    corpusAll.add("%s%s/data/%s.txt".format(basePath, corpus, "test"))
+
+    val rel_Count = Map[Int, Int]()
+    val rel_RevCount = Map[Int, Int]()
+
+    for ((h, r, t) <- corpusAll.triples) {
+      rel_Count(r) = if (rel_Count.contains(r)) rel_Count(r) + 1 else 1
+      if(corpusAll.exist(t, r, h))
+        rel_RevCount(r) = if (rel_RevCount.contains(r)) rel_RevCount(r) + 1 else 1
+    }
+
+    val writer = new PrintWriter("%s%s/data/%s.txt".format(basePath, corpus, "ref_relations"), "utf-8")
+    var biliSum = 0.toDouble
+    for(r <- rel_Count.keys if rel_RevCount.contains(r)){
+      val prop = 1.0 * rel_RevCount(r) / rel_Count(r)
+      val bili = 1.0 * rel_Count(r) / corpusAll.triples.size
+      if(prop > 0.5){
+        writer.println(r + "\t" + prop + "\t" + bili)
+        biliSum += bili
+      }
+    }
+    writer.close()
+    println(biliSum)
+
+  }
+
+
+  def main_3(args: Array[String]) {
     prepare()
     val corpusAll = new Corpus(entity2id, relation2id, id2entity, id2relation)
     corpusAll.add("%s%s/data/%s.txt".format(basePath, corpus, "train"))
