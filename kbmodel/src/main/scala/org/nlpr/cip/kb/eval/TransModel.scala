@@ -54,6 +54,9 @@ object TransModel {
     TransModel.negType = negType
     TransModel.size = size
     TransModel.l1 = l1
+    if (model.startsWith("PTransE"))
+      return getPTransE()
+
     if(model.startsWith("GEEL"))
       return getGEEL()
     if(model.startsWith("GEKL"))
@@ -66,6 +69,8 @@ object TransModel {
       return getJointH()
     if(model.startsWith("JointP2"))
       return getTransHBi()
+
+
     if (model.startsWith("TransE"))
       return getTransE()
     if (model.startsWith("TransH"))
@@ -88,6 +93,19 @@ object TransModel {
     for ((line, id) <- Source.fromFile(entVecPath).getLines.zipWithIndex if line.trim.length > 0)
       entity2vec(id) = line.split("\t").map(_.toDouble)
     val relVecPath = "%s%s/%s/relation2vec.%d.%s".format(basePath, corpus, model, size, negType)
+    for ((line, id) <- Source.fromFile(relVecPath).getLines.zipWithIndex if line.trim.length > 0)
+      relation2vec(id) = line.split("\t").map(_.toDouble)
+    if(l1) new TransEL1(entity2vec, relation2vec)
+    else new TransEL2(entity2vec, relation2vec)
+  }
+
+  def getPTransE(): TransModel = {
+    val entity2vec = Map[Int, Array[Double]]()
+    val relation2vec = Map[Int, Array[Double]]()
+    val entVecPath = "%s%s/%s/entity2vec.%d".format(basePath, corpus, model, size)
+    for ((line, id) <- Source.fromFile(entVecPath).getLines.zipWithIndex if line.trim.length > 0)
+      entity2vec(id) = line.split("\t").map(_.toDouble)
+    val relVecPath = "%s%s/%s/relation2vec.%d".format(basePath, corpus, model, size)
     for ((line, id) <- Source.fromFile(relVecPath).getLines.zipWithIndex if line.trim.length > 0)
       relation2vec(id) = line.split("\t").map(_.toDouble)
     if(l1) new TransEL1(entity2vec, relation2vec)

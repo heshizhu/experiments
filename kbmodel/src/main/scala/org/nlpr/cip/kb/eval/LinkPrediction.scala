@@ -41,7 +41,7 @@ object LinkPrediction {
 
 
     corpus = "fb15k"
-    model = "GEEL"
+    model = "TransEM-3"
     negType = "bern"
     dim = 50
 

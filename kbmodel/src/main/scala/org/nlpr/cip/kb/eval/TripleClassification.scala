@@ -53,7 +53,7 @@ object TripleClassification {
     //    prepare()
 
     corpus = "fb15k"
-    model = "GEKL"
+    model = "TransEM-3"
 
     for (size <- List(50)) {
       for (negT <- List("bern")) {
@@ -139,84 +139,84 @@ object TripleClassification {
     }
 
     //    测试低频关系
-    {
-      println("高频关系效果")
-      def filterFun = (x: (Int, Double)) => (if (highFrqRelations.contains(x._1)) true else false)
-      val validPosValues = validPosScores.filter(filterFun).toList
-      val validNegValues = validNegScores.filter(filterFun).toList
-      val testPosValues = testPosScores.filter(filterFun).toList
-      val testNegValues = testNegScores.filter(filterFun).toList
-      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
-    }
+//    {
+//      println("高频关系效果")
+//      def filterFun = (x: (Int, Double)) => (if (highFrqRelations.contains(x._1)) true else false)
+//      val validPosValues = validPosScores.filter(filterFun).toList
+//      val validNegValues = validNegScores.filter(filterFun).toList
+//      val testPosValues = testPosScores.filter(filterFun).toList
+//      val testNegValues = testNegScores.filter(filterFun).toList
+//      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
+//    }
 
     //    测试低频关系
-    {
-      println("低频关系效果")
-      def filterFun = (x: (Int, Double)) => (if (!highFrqRelations.contains(x._1)) true else false)
-      val validPosValues = validPosScores.filter(filterFun).toList
-      val validNegValues = validNegScores.filter(filterFun).toList
-      val testPosValues = testPosScores.filter(filterFun).toList
-      val testNegValues = testNegScores.filter(filterFun).toList
-      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
-    }
+//    {
+//      println("低频关系效果")
+//      def filterFun = (x: (Int, Double)) => (if (!highFrqRelations.contains(x._1)) true else false)
+//      val validPosValues = validPosScores.filter(filterFun).toList
+//      val validNegValues = validNegScores.filter(filterFun).toList
+//      val testPosValues = testPosScores.filter(filterFun).toList
+//      val testNegValues = testNegScores.filter(filterFun).toList
+//      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
+//    }
 
     //    1_1
-    {
-      println("1_1")
-      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "1_1") true else false)
-      val validPosValues = validPosScores.filter(filterFun).toList
-      val validNegValues = validNegScores.filter(filterFun).toList
-      val testPosValues = testPosScores.filter(filterFun).toList
-      val testNegValues = testNegScores.filter(filterFun).toList
-      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
-    }
+//    {
+//      println("1_1")
+//      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "1_1") true else false)
+//      val validPosValues = validPosScores.filter(filterFun).toList
+//      val validNegValues = validNegScores.filter(filterFun).toList
+//      val testPosValues = testPosScores.filter(filterFun).toList
+//      val testNegValues = testNegScores.filter(filterFun).toList
+//      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
+//    }
 
     //    1_m
-    {
-      println("1_m")
-      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "1_m") true else false)
-      val validPosValues = validPosScores.filter(filterFun).toList
-      val validNegValues = validNegScores.filter(filterFun).toList
-      val testPosValues = testPosScores.filter(filterFun).toList
-      val testNegValues = testNegScores.filter(filterFun).toList
-      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
-    }
+//    {
+//      println("1_m")
+//      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "1_m") true else false)
+//      val validPosValues = validPosScores.filter(filterFun).toList
+//      val validNegValues = validNegScores.filter(filterFun).toList
+//      val testPosValues = testPosScores.filter(filterFun).toList
+//      val testNegValues = testNegScores.filter(filterFun).toList
+//      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
+//    }
 
     //    m_1
-    {
-      println("m_1")
-      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "m_1") true else false)
-      val validPosValues = validPosScores.filter(filterFun).toList
-      val validNegValues = validNegScores.filter(filterFun).toList
-      val testPosValues = testPosScores.filter(filterFun).toList
-      val testNegValues = testNegScores.filter(filterFun).toList
-      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
-    }
+//    {
+//      println("m_1")
+//      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "m_1") true else false)
+//      val validPosValues = validPosScores.filter(filterFun).toList
+//      val validNegValues = validNegScores.filter(filterFun).toList
+//      val testPosValues = testPosScores.filter(filterFun).toList
+//      val testNegValues = testNegScores.filter(filterFun).toList
+//      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
+//    }
 
     //    m_n
-    {
-      println("m_n")
-      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "m_n") true else false)
-      val validPosValues = validPosScores.filter(filterFun).toList
-      val validNegValues = validNegScores.filter(filterFun).toList
-      val testPosValues = testPosScores.filter(filterFun).toList
-      val testNegValues = testNegScores.filter(filterFun).toList
-      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
-    }
+//    {
+//      println("m_n")
+//      def filterFun = (x: (Int, Double)) => (if (relation2type(x._1) == "m_n") true else false)
+//      val validPosValues = validPosScores.filter(filterFun).toList
+//      val validNegValues = validNegScores.filter(filterFun).toList
+//      val testPosValues = testPosScores.filter(filterFun).toList
+//      val testNegValues = testNegScores.filter(filterFun).toList
+//      validtest(validPosValues, validNegValues, testPosValues, testNegValues)
+//    }
 
-    {
-
-      for (relID <- relation2id.values) {
-        println("关系：" + relID)
-        println(id2relation(relID))
-        def filterFun = (x: (Int, Double)) => (if (x._1 == relID) true else false)
-        val validPosValues = validPosScores.filter(filterFun).toList
-        val validNegValues = validNegScores.filter(filterFun).toList
-        val testPosValues = testPosScores.filter(filterFun).toList
-        val testNegValues = testNegScores.filter(filterFun).toList
-        validtest(validPosValues, validNegValues, testPosValues, testNegValues)
-      }
-    }
+//    {
+//
+//      for (relID <- relation2id.values) {
+//        println("关系：" + relID)
+//        println(id2relation(relID))
+//        def filterFun = (x: (Int, Double)) => (if (x._1 == relID) true else false)
+//        val validPosValues = validPosScores.filter(filterFun).toList
+//        val validNegValues = validNegScores.filter(filterFun).toList
+//        val testPosValues = testPosScores.filter(filterFun).toList
+//        val testNegValues = testNegScores.filter(filterFun).toList
+//        validtest(validPosValues, validNegValues, testPosValues, testNegValues)
+//      }
+//    }
     //全部统计
     println("全部效果")
     val validPosValues = validPosScores.toList
